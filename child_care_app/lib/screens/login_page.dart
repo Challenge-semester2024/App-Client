@@ -93,11 +93,18 @@ class LoginPage extends StatelessWidget {
                       print('로그인 실패');
                     }
                   },
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: const Color.fromARGB(255, 255, 0, 0),
+                    backgroundColor:
+                        const Color.fromARGB(255, 0, 0, 0), // 텍스트 색을 흰색으로 설정
+                  ),
                   child: Container(
-                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                    padding: const EdgeInsets.fromLTRB(60, 8, 60, 8),
                     child: const Text(
                       "로그인",
-                      style: TextStyle(color: Colors.black, fontSize: 15),
+                      style: TextStyle(
+                          color: Color.fromARGB(255, 255, 255, 255),
+                          fontSize: 15),
                     ),
                   ),
                 ),
