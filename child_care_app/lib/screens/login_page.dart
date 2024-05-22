@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:child_care_app/screens/main_page.dart';
 import 'package:child_care_app/screens/signup_page.dart';
+import 'package:child_care_app/screens/start_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -87,7 +87,7 @@ class LoginPage extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => const MainPage()),
+                            builder: (context) => const StartPage()),
                       );
                     } else {
                       print('로그인 실패');
