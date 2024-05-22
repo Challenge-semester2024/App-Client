@@ -5,13 +5,20 @@ import 'package:child_care_app/widgets/warning_alert.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-class SignUpPage extends StatelessWidget {
-  SignUpPage({super.key});
+class SignUpPage extends StatefulWidget {
+  const SignUpPage({super.key});
+
+  @override
+  _SignUpPageState createState() => _SignUpPageState();
+}
+
+class _SignUpPageState extends State<SignUpPage> {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
   final passwordCheckController = TextEditingController();
+  String? _gender;
 
   @override
   Widget build(BuildContext context) {
@@ -29,44 +36,116 @@ class SignUpPage extends StatelessWidget {
         ),
         title: const Text(
           '회원가입',
-          style: TextStyle(color: Colors.black),
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w800),
         ),
       ),
       body: SingleChildScrollView(
         child: Align(
           alignment: Alignment.center,
           child: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.6,
+            width: MediaQuery.of(context).size.width * 0.8,
             child: Column(
               children: [
                 Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                   // 로그인 입력
-                  const SizedBox(height: 25.0),
-                  TextFormField(
-                    controller: nameController,
-                    decoration: getInputDecoration(labelText: 'Name'),
+                  const SizedBox(height: 60.0),
+                  Row(
+                    children: [
+                      Flexible(
+                        flex: 3,
+                        child: TextFormField(
+                          controller: nameController,
+                          decoration: getInputDecoration(labelText: '이름'),
+                        ),
+                      ),
+                      const SizedBox(width: 10.0),
+                      Flexible(
+                        flex: 2,
+                        child: Container(
+                          padding: EdgeInsets.zero, // Container의 패딩을 줄임
+                          height: 56, // Container의 높이를 줄임
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.black, width: 1.0),
+                            borderRadius: BorderRadius.circular(4.0),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: ChoiceChip(
+                                  label: const Text('남'),
+                                  selected: _gender == '남',
+                                  selectedColor: Colors.black,
+                                  onSelected: (bool selected) {
+                                    setState(() {
+                                      _gender = selected ? '남' : null;
+                                    });
+                                  },
+                                  backgroundColor: Colors.white,
+                                  labelStyle: TextStyle(
+                                    color: _gender == '남'
+                                        ? Colors.white
+                                        : Colors.black,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 2.0,
+                                      horizontal: 12.0), // ChoiceChip의 패딩 조정
+                                ),
+                              ),
+                              const Text("|",
+                                  style: TextStyle(color: Colors.black)),
+                              Expanded(
+                                child: ChoiceChip(
+                                  label: const Text('여'),
+                                  selected: _gender == '여',
+                                  selectedColor: Colors.black,
+                                  onSelected: (bool selected) {
+                                    setState(() {
+                                      _gender = selected ? '여' : null;
+                                    });
+                                  },
+                                  backgroundColor: Colors.white,
+                                  labelStyle: TextStyle(
+                                    color: _gender == '여'
+                                        ? Colors.white
+                                        : Colors.black,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 2.0,
+                                      horizontal: 12.0), // ChoiceChip의 패딩 조정
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 25.0),
+                  const SizedBox(height: 20.0),
                   TextFormField(
                     controller: emailController,
-                    decoration: getInputDecoration(labelText: 'Email'),
+                    decoration: getInputDecoration(labelText: '생년월일 6자리'),
                   ),
-                  const SizedBox(height: 25.0),
+                  const SizedBox(height: 20.0),
                   TextFormField(
                     controller: phoneController,
-                    decoration: getInputDecoration(labelText: 'Phone'),
+                    decoration: getInputDecoration(labelText: '전화번호'),
                   ),
-                  const SizedBox(height: 25.0),
+                  const SizedBox(height: 20.0),
                   TextFormField(
                     controller: passwordController,
-                    decoration: getInputDecoration(labelText: 'Password'),
+                    decoration: getInputDecoration(labelText: '이메일'),
                   ),
-                  const SizedBox(height: 25.0),
+                  const SizedBox(height: 20.0),
                   TextFormField(
                     controller: passwordCheckController,
-                    decoration: getInputDecoration(labelText: 'Password Check'),
+                    decoration: getInputDecoration(labelText: '비밀번호'),
                   ),
-                  const SizedBox(height: 25.0),
+                  const SizedBox(height: 20.0),
+                  TextFormField(
+                    controller: passwordCheckController,
+                    decoration: getInputDecoration(labelText: '비밀번호 재입력'),
+                  ),
+                  const SizedBox(height: 35),
                 ]),
                 ElevatedButton(
                   onPressed: () async {
@@ -80,6 +159,7 @@ class SignUpPage extends StatelessWidget {
                     final signupDto = jsonEncode({
                       // signup DTO 생성
                       'name': nameController.text,
+                      'gender': _gender,
                       'email': emailController.text,
                       'phone': phoneController.text,
                       'password': passwordController.text,
@@ -94,12 +174,15 @@ class SignUpPage extends StatelessWidget {
                       print('회원가입 실패');
                     }
                   },
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                    child: const Text(
-                      "회원가입",
-                      style: TextStyle(color: Colors.black, fontSize: 15),
-                    ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black, // 배경 색상을 검은색으로 설정
+                    minimumSize: Size(MediaQuery.of(context).size.width * 0.6,
+                        35), // 가로 길이를 늘림
+                  ),
+                  child: const Text(
+                    "회원가입",
+                    style: TextStyle(
+                        color: Colors.white, fontSize: 15), // 텍스트 색상을 흰색으로 설정
                   ),
                 ),
               ],
@@ -131,5 +214,7 @@ InputDecoration getInputDecoration({required String labelText}) {
     border: const OutlineInputBorder(
       borderSide: BorderSide(color: Colors.black, width: 2.0),
     ),
+    contentPadding: const EdgeInsets.symmetric(
+        vertical: 16.0, horizontal: 12.0), // 입력칸의 세로 길이를 줄임
   );
 }
