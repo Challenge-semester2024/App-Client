@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:child_care_app/screens/find_facility_page.dart';
 import 'package:child_care_app/widgets/home_bottom_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -154,7 +155,13 @@ class _HomePageState extends State<HomePage> {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const FindFacilityPage()),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       foregroundColor: Colors.black,
                       backgroundColor: Colors.white,
