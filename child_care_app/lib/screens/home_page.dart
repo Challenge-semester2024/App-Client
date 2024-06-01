@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:child_care_app/screens/find_facility_page.dart';
+import 'package:child_care_app/screens/find_volunteer_page.dart'; // 봉사공고 찾기 페이지 임포트
 import 'package:child_care_app/widgets/home_bottom_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -29,7 +30,7 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         elevation: 4, // 그림자 추가
         backgroundColor: Colors.white,
-        toolbarHeight: 140,
+        toolbarHeight: 120,
         automaticallyImplyLeading: false,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -182,7 +183,14 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) =>
+                                const FindVolunteerPage()), // 봉사공고 찾기 페이지로 이동
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       foregroundColor: Colors.black,
                       backgroundColor: Colors.white,
