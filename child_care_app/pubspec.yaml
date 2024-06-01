@@ -60,6 +60,7 @@ flutter:
     - assets/logo.png
     - assets/banner.png
     - assets/profile.png
+    - assets/facility.png
     - assets/kakao_map.html
     - assets/env/
   # The following line ensures that the Material Icons font is
