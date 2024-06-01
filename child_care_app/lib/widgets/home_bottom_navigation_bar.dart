@@ -1,9 +1,34 @@
+import 'package:child_care_app/screens/favorite_facilities_page.dart';
+import 'package:child_care_app/screens/home_page.dart';
 import 'package:flutter/material.dart';
 
-class HomeBottomNavigationBar extends StatelessWidget {
-  const HomeBottomNavigationBar({
-    super.key,
-  });
+class HomeBottomNavigationBar extends StatefulWidget {
+  const HomeBottomNavigationBar({super.key});
+
+  @override
+  _HomeBottomNavigationBarState createState() =>
+      _HomeBottomNavigationBarState();
+}
+
+class _HomeBottomNavigationBarState extends State<HomeBottomNavigationBar> {
+  int _selectedIndex = 0;
+
+  static const List<Widget> _widgetOptions = <Widget>[
+    HomePage(), // 홈 페이지 위젯
+    FavoriteFacilitiesPage(), // 관심 기관 페이지 위젯
+    Placeholder(), // 스크랩 공고 페이지를 추가하세요
+    Placeholder(), // 더보기 페이지를 추가하세요
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => _widgetOptions[index]),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +46,8 @@ class HomeBottomNavigationBar extends StatelessWidget {
         fontSize: 14, // 선택되지 않은 아이템의 라벨 크기를 키움
       ),
       showUnselectedLabels: true,
+      currentIndex: _selectedIndex,
+      onTap: _onItemTapped,
       items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.home, size: 30), // 아이콘 크기 조정
