@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:child_care_app/widgets/success_alert.dart';
 import 'package:child_care_app/widgets/warning_alert.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class SignUpPage extends StatefulWidget {
@@ -15,10 +16,11 @@ class SignUpPage extends StatefulWidget {
 class _SignUpPageState extends State<SignUpPage> {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
+  final birthController = TextEditingController();
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
   final passwordCheckController = TextEditingController();
-  String? _gender;
+  bool? _gender; // true for 남, false for 여
 
   @override
   Widget build(BuildContext context) {
@@ -73,16 +75,16 @@ class _SignUpPageState extends State<SignUpPage> {
                               Expanded(
                                 child: ChoiceChip(
                                   label: const Text('남'),
-                                  selected: _gender == '남',
+                                  selected: _gender == true,
                                   selectedColor: Colors.black,
                                   onSelected: (bool selected) {
                                     setState(() {
-                                      _gender = selected ? '남' : null;
+                                      _gender = selected ? true : null;
                                     });
                                   },
                                   backgroundColor: Colors.white,
                                   labelStyle: TextStyle(
-                                    color: _gender == '남'
+                                    color: _gender == true
                                         ? Colors.white
                                         : Colors.black,
                                   ),
@@ -96,16 +98,16 @@ class _SignUpPageState extends State<SignUpPage> {
                               Expanded(
                                 child: ChoiceChip(
                                   label: const Text('여'),
-                                  selected: _gender == '여',
+                                  selected: _gender == false,
                                   selectedColor: Colors.black,
                                   onSelected: (bool selected) {
                                     setState(() {
-                                      _gender = selected ? '여' : null;
+                                      _gender = selected ? false : null;
                                     });
                                   },
                                   backgroundColor: Colors.white,
                                   labelStyle: TextStyle(
-                                    color: _gender == '여'
+                                    color: _gender == false
                                         ? Colors.white
                                         : Colors.black,
                                   ),
@@ -122,7 +124,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                   const SizedBox(height: 20.0),
                   TextFormField(
-                    controller: emailController,
+                    controller: birthController,
                     decoration: getInputDecoration(labelText: '생년월일 6자리'),
                   ),
                   const SizedBox(height: 20.0),
@@ -132,18 +134,20 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                   const SizedBox(height: 20.0),
                   TextFormField(
-                    controller: passwordController,
+                    controller: emailController,
                     decoration: getInputDecoration(labelText: '이메일'),
                   ),
                   const SizedBox(height: 20.0),
                   TextFormField(
-                    controller: passwordCheckController,
+                    controller: passwordController,
                     decoration: getInputDecoration(labelText: '비밀번호'),
+                    obscureText: true,
                   ),
                   const SizedBox(height: 20.0),
                   TextFormField(
                     controller: passwordCheckController,
                     decoration: getInputDecoration(labelText: '비밀번호 재입력'),
+                    obscureText: true,
                   ),
                   const SizedBox(height: 35),
                 ]),
@@ -160,18 +164,21 @@ class _SignUpPageState extends State<SignUpPage> {
                       // signup DTO 생성
                       'name': nameController.text,
                       'gender': _gender,
-                      'email': emailController.text,
-                      'phone': phoneController.text,
+                      'birth': birthController.text,
+                      'emailId': emailController.text,
+                      'phoneNum': phoneController.text,
                       'password': passwordController.text,
+                      'passwordCheck': passwordCheckController.text,
                     });
 
+                    print(signupDto);
+
                     final res = await sendToServer(signupDto); // 로그인 요청
-                    print(res);
                     if (res == 200 && context.mounted) {
                       Navigator.pop(context);
                       successAlert(context, "회원가입이 정상적으로 완료되었습니다.");
                     } else {
-                      print('회원가입 실패');
+                      warningAlert(context, "회원가입 실패");
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -195,8 +202,9 @@ class _SignUpPageState extends State<SignUpPage> {
 }
 
 Future<int> sendToServer(Object signupDto) async {
+  final serverIp = dotenv.env['SERVER_IP'] ?? 'http://defaultIp';
   final res = await http.post(
-    Uri.parse("serverIp/auth/signup"),
+    Uri.parse("$serverIp/api/auth/app/signUp"),
     headers: {'Content-Type': 'application/json'},
     body: signupDto,
   );
