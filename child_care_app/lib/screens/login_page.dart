@@ -1,8 +1,12 @@
 import 'dart:convert';
 
+import 'package:child_care_app/screens/home_page.dart';
 import 'package:child_care_app/screens/signup_page.dart';
-import 'package:child_care_app/screens/start_page.dart';
+import 'package:child_care_app/service/token.dart';
+import 'package:child_care_app/widgets/success_alert.dart';
+import 'package:child_care_app/widgets/warning_alert.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class LoginPage extends StatelessWidget {
@@ -58,6 +62,7 @@ class LoginPage extends StatelessWidget {
                         borderSide: BorderSide(color: Colors.black, width: 2.0),
                       ),
                     ),
+                    obscureText: true, // 비밀번호 입력 가리기
                   ),
                 ]),
                 Align(
@@ -66,7 +71,8 @@ class LoginPage extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => SignUpPage()),
+                        MaterialPageRoute(
+                            builder: (context) => const SignUpPage()),
                       );
                     },
                     child: const Text('회원가입'),
@@ -75,28 +81,32 @@ class LoginPage extends StatelessWidget {
                 ElevatedButton(
                   onPressed: () async {
                     final loginDto = jsonEncode({
-                      // login DTO 생성
                       'email': emailController.text,
                       'password': passwordController.text,
                     });
 
                     final res = await sendToServer(loginDto); // 로그인 요청
-                    print(res);
-                    if (context.mounted) {
-                      // res == 200 추가 해야함
+                    if (res.statusCode == 200 && context.mounted) {
+                      final responseData = jsonDecode(res.body);
+                      final tokenDto = responseData['accessTokenDto']
+                          as Map<String, dynamic>;
+                      final token = tokenDto['accessToken'] as String;
+                      // JWT 토큰 저장
+                      await saveJwtToken(token);
+
+                      successAlert(context, "로그인 성공");
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => const StartPage()),
+                            builder: (context) => const HomePage()),
                       );
                     } else {
-                      print('로그인 실패');
+                      warningAlert(context, "로그인 실패");
                     }
                   },
                   style: ElevatedButton.styleFrom(
                     foregroundColor: const Color.fromARGB(255, 255, 0, 0),
-                    backgroundColor:
-                        const Color.fromARGB(255, 0, 0, 0), // 텍스트 색을 흰색으로 설정
+                    backgroundColor: const Color.fromARGB(255, 0, 0, 0),
                   ),
                   child: Container(
                     padding: const EdgeInsets.fromLTRB(60, 8, 60, 8),
@@ -117,13 +127,13 @@ class LoginPage extends StatelessWidget {
   }
 }
 
-Future<int> sendToServer(Object loginDto) async {
-  print(loginDto);
+Future<http.Response> sendToServer(Object loginDto) async {
+  final serverIp = dotenv.env['SERVER_IP'] ?? 'http://defaultIp';
   final res = await http.post(
-    Uri.parse("serverIp/auth/signin"),
+    Uri.parse("$serverIp/api/auth/app/signIn"),
     headers: {'Content-Type': 'application/json'},
     body: loginDto,
   );
-
-  return res.statusCode;
+  print(res.body);
+  return res;
 }
