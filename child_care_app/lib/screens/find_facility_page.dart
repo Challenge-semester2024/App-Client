@@ -25,7 +25,7 @@ class _FindFacilityPageState extends State<FindFacilityPage> {
     final serverIp = dotenv.env['SERVER_IP'] ?? 'http://defaultIp';
     final accessToken = await getJwtToken();
     final url = Uri.parse('$serverIp/api/center/find');
-    final body = jsonEncode({'findChildCenter': query});
+    final body = jsonEncode({'findWord': query});
 
     final response = await http.post(url, body: body, headers: {
       'Content-Type': 'application/json',
