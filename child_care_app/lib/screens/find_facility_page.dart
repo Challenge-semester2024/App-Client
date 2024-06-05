@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:child_care_app/screens/kakao_map_view.dart';
+import 'package:child_care_app/service/token.dart';
 import 'package:child_care_app/widgets/home_bottom_navigation_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 import 'facility_page.dart';
@@ -14,18 +18,25 @@ class FindFacilityPage extends StatefulWidget {
 
 class _FindFacilityPageState extends State<FindFacilityPage> {
   final TextEditingController _searchController = TextEditingController();
+  List<dynamic> _facilities = [];
 
   void _searchFacilities() async {
     final query = _searchController.text;
-    final url = Uri.parse('https://your-server.com/search?query=$query');
+    final serverIp = dotenv.env['SERVER_IP'] ?? 'http://defaultIp';
+    final accessToken = await getJwtToken();
+    final url = Uri.parse('$serverIp/api/center/find');
+    final body = jsonEncode({'findChildCenter': query});
 
-    final response = await http.get(url);
+    final response = await http.post(url, body: body, headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $accessToken',
+    });
 
     if (response.statusCode == 200) {
-      // 서버 응답을 처리하는 로직
-      print('검색 결과: ${response.body}');
+      setState(() {
+        _facilities = jsonDecode(utf8.decode(response.bodyBytes));
+      });
     } else {
-      // 에러 처리 로직
       print('검색 실패: ${response.statusCode}');
     }
   }
@@ -41,7 +52,7 @@ class _FindFacilityPageState extends State<FindFacilityPage> {
               children: [
                 const KakaoMapView(),
                 Positioned(
-                  top: 90, // 여기에서 위치를 조정합니다.
+                  top: 90,
                   left: 20,
                   right: 20,
                   child: Container(
@@ -83,20 +94,22 @@ class _FindFacilityPageState extends State<FindFacilityPage> {
           Expanded(
             flex: 2,
             child: ListView.builder(
-              itemCount: 3, // 예시 항목 수
+              itemCount: _facilities.length,
               itemBuilder: (context, index) {
+                final facility = _facilities[index];
                 return ListTile(
-                  title: const Text('상록보육원'),
-                  subtitle: const Text('주소 주소 주소 주소 주소 주소 주소'),
+                  title: Text(facility['centerName']),
+                  subtitle: Text(facility['roadAddress']),
                   trailing: const Icon(Icons.arrow_forward),
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const FacilityPage(
-                          name: '상록보육원',
-                          address: '주소 주소 주소 주소 주소 주소 주소',
-                          phone: '',
+                        builder: (context) => FacilityPage(
+                          id: facility['id'],
+                          name: facility['centerName'],
+                          address: facility['roadAddress'],
+                          phone: facility['phoneNumber'],
                         ),
                       ),
                     );
