@@ -1,4 +1,12 @@
+import 'dart:convert';
+
+import 'package:child_care_app/service/token.dart';
+import 'package:child_care_app/widgets/home_bottom_navigation_bar.dart';
+import 'package:child_care_app/widgets/success_alert.dart';
+import 'package:child_care_app/widgets/warning_alert.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 
 class VolunteerApplicationPage extends StatefulWidget {
   final Map<String, dynamic> volunteerData;
@@ -52,6 +60,35 @@ class _VolunteerApplicationPageState extends State<VolunteerApplicationPage> {
       setState(() {
         selectedDate = picked;
       });
+    }
+  }
+
+  Future<void> _submitApplication() async {
+    if (selectedDate == null) return;
+
+    final serverIp = dotenv.env['SERVER_IP'] ?? 'http://defaultIp';
+    final accessToken = await getJwtToken();
+    final url = Uri.parse('$serverIp/api/app/recruitment/waiting/request');
+    final data = jsonEncode({
+      "recruitmentDates": [selectedDate!.toIso8601String().split('T').first],
+      "recruitmentId": widget.volunteerData['id'],
+    });
+    print(data);
+    final response = await http.post(url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: data);
+    if (response.statusCode == 200) {
+      if (mounted) {
+        Navigator.pop(context); // 현재 페이지 pop
+        successAlert(context, "신청이 완료되었습니다!");
+      }
+    } else {
+      // Handle error response
+      warningAlert(context, "이미 신청한 봉사 공고입니다!");
+      print('Failed to submit application');
     }
   }
 
@@ -130,11 +167,7 @@ class _VolunteerApplicationPageState extends State<VolunteerApplicationPage> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: selectedDate != null
-                        ? () {
-                            // Apply logic here
-                          }
-                        : null,
+                    onPressed: selectedDate != null ? _submitApplication : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF16269E),
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -151,6 +184,7 @@ class _VolunteerApplicationPageState extends State<VolunteerApplicationPage> {
           ],
         ),
       ),
+      bottomNavigationBar: const HomeBottomNavigationBar(),
     );
   }
 
