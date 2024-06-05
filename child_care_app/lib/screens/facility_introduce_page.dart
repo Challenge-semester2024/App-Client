@@ -1,12 +1,16 @@
 import 'dart:convert';
 
+import 'package:child_care_app/service/token.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class FacilityIntroducePage extends StatefulWidget {
   final String type;
+  final int id;
 
-  const FacilityIntroducePage({required this.type, Key? key}) : super(key: key);
+  const FacilityIntroducePage({required this.type, required this.id, Key? key})
+      : super(key: key);
 
   @override
   _FacilityIntroducePage createState() => _FacilityIntroducePage();
@@ -28,13 +32,16 @@ class _FacilityIntroducePage extends State<FacilityIntroducePage> {
     setState(() {
       _isLoading = true;
     });
-
-    final url = 'https://your-server.com/${widget.type}';
-    final response = await http.get(Uri.parse(url));
-
+    final serverIp = dotenv.env['SERVER_IP'] ?? 'http://defaultIp';
+    final accessToken = await getJwtToken();
+    final url = Uri.parse('$serverIp/get/center/${widget.id}/facility/info');
+    final response = await http.get(url, headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $accessToken',
+    });
     if (response.statusCode == 200) {
       setState(() {
-        _content = json.decode(response.body)['content'];
+        _content = jsonDecode(utf8.decode(response.bodyBytes));
         _isLoading = false;
       });
     } else {
