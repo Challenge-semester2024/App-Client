@@ -1,15 +1,20 @@
 import 'dart:convert';
 
+import 'package:child_care_app/screens/volunteer_detail_page.dart';
+import 'package:child_care_app/service/token.dart';
 import 'package:child_care_app/widgets/home_bottom_navigation_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class FacilityPage extends StatefulWidget {
+  final int id;
   final String name;
   final String address;
   final String phone;
 
   const FacilityPage({
+    required this.id,
     required this.name,
     required this.address,
     required this.phone,
@@ -175,7 +180,7 @@ class _FacilityPageState extends State<FacilityPage> {
                   ),
                   const SizedBox(height: 16.0),
                   // 서버에서 받아온 데이터를 출력하는 위젯
-                  ServerDataWidget(type: _selectedTab),
+                  ServerDataWidget(type: _selectedTab, id: widget.id),
                 ],
               ),
             ),
@@ -189,21 +194,23 @@ class _FacilityPageState extends State<FacilityPage> {
 
 class ServerDataWidget extends StatefulWidget {
   final String type;
+  final int id;
 
-  const ServerDataWidget({required this.type, Key? key}) : super(key: key);
+  const ServerDataWidget({required this.type, required this.id, Key? key})
+      : super(key: key);
 
   @override
   _ServerDataWidgetState createState() => _ServerDataWidgetState();
 }
 
 class _ServerDataWidgetState extends State<ServerDataWidget> {
-  Map<String, dynamic> _data = {};
+  dynamic _data;
   bool _isLoading = true;
 
   @override
   void didUpdateWidget(covariant ServerDataWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.type != widget.type) {
+    if (oldWidget.type != widget.type || oldWidget.id != widget.id) {
       _fetchData();
     }
   }
@@ -213,12 +220,28 @@ class _ServerDataWidgetState extends State<ServerDataWidget> {
       _isLoading = true;
     });
 
-    final url = 'https://your-server.com/${widget.type}';
-    final response = await http.get(Uri.parse(url));
+    final serverIp = dotenv.env['SERVER_IP'] ?? 'http://defaultIp';
+    final accessToken = await getJwtToken();
+
+    String endpoint;
+    if (widget.type == '시설 소개') {
+      endpoint = '/get/center/${widget.id}/facility/info';
+    } else if (widget.type == '봉사/후원') {
+      endpoint = '/get/center/${widget.id}/recruitment/preview';
+    } else {
+      endpoint = '';
+    }
+
+    final url = Uri.parse('$serverIp$endpoint');
+    final response = await http.get(url, headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $accessToken',
+    });
 
     if (response.statusCode == 200) {
+      final responseBody = utf8.decode(response.bodyBytes);
       setState(() {
-        _data = json.decode(response.body);
+        _data = jsonDecode(responseBody);
         _isLoading = false;
       });
     } else {
@@ -256,101 +279,162 @@ class _ServerDataWidgetState extends State<ServerDataWidget> {
   }
 
   Widget _buildFacilityInfo() {
+    if (_data is! Map<String, dynamic>) {
+      return const Center(child: Text("Invalid data format"));
+    }
+
     return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_data.containsKey('greeting'))
-            Text(
-              _data['greeting']['memo'] ?? '',
-              style: const TextStyle(fontSize: 16),
-            ),
-          const SizedBox(height: 16.0),
-          if (_data.containsKey('decadeYearList'))
-            ...(_data['decadeYearList'] as List).map<Widget>((decade) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${decade['decadeStartYear']}~',
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8.0),
-                  ...(decade['yearList'] as List).map<Widget>((year) {
-                    return Text(
-                      '${year['year']}: ${year['memo']}',
-                      style: const TextStyle(fontSize: 16),
-                    );
-                  }).toList(),
-                ],
-              );
-            }).toList(),
-          const SizedBox(height: 16.0),
-          if (_data.containsKey('routeInfo'))
-            Text(
-              _data['routeInfo']['memo'] ?? '',
-              style: const TextStyle(fontSize: 16),
-            ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_data.containsKey('greeting')) ...[
+              _buildSectionTitle('인사말'),
+              Text(
+                _data['greeting']['memo'] ?? '',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16.0),
+              _buildDivider(),
+            ],
+            if (_data.containsKey('decadeYearList')) ...[
+              _buildSectionTitle('연혁'),
+              ...(_data['decadeYearList'] as List).map<Widget>((decade) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${decade['decadeStartYear']}~',
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8.0),
+                    ...(decade['yearList'] as List).map<Widget>((year) {
+                      return Text(
+                        '${year['year']}: ${year['memo']}',
+                        style: const TextStyle(fontSize: 16),
+                      );
+                    }).toList(),
+                  ],
+                );
+              }).toList(),
+              const SizedBox(height: 16.0),
+              _buildDivider(),
+            ],
+            if (_data.containsKey('routeInfo')) ...[
+              _buildSectionTitle('찾아오는 길'),
+              Text(
+                _data['routeInfo']['memo'] ?? '',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16.0),
+            ],
+          ],
+        ),
       ),
     );
   }
 
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      height: 1.0,
+      color: Colors.grey[300],
+    );
+  }
+
   Widget _buildVolunteerInfo() {
-    if (_data['volunteerList'] == null) {
+    if (_data is! List) {
+      return const Center(child: Text("Invalid data format"));
+    }
+
+    if (_data.isEmpty) {
       return const Center(child: Text("No data available"));
     }
-    return Column(
-      children: (_data['volunteerList'] as List).map<Widget>((entry) {
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 8.0),
-          padding: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10.0),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 5.0,
-                offset: Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                entry['name'],
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+
+    return SingleChildScrollView(
+      child: Column(
+        children: _data.map<Widget>((entry) {
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => VolunteerDetailPage(id: entry['id']),
+                ),
+              );
+            },
+            child: SizedBox(
+              width: double.infinity,
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10.0),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 5.0,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry['name'],
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8.0),
+                    Text(
+                      '${entry['recruitmentStartDate']} ~ ${entry['recruitmentEndDate']}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 8.0),
+                    Text(
+                      '${entry['currentApplicants']} / ${entry['totalApplicants']}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8.0),
-              Text(
-                '${entry['recruitmentStartDate']} ~ ${entry['recruitmentEndDate']}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 8.0),
-              Text(
-                '${entry['currentApplicants']} / ${entry['totalApplicants']}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
   Widget _buildBoardInfo() {
+    if (_data is! Map<String, dynamic> || !_data.containsKey('content')) {
+      return const Center(child: Text("Invalid data format"));
+    }
+
     return Container(
       padding: const EdgeInsets.all(16.0),
       child: Text(
