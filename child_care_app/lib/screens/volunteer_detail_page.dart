@@ -37,12 +37,13 @@ class _VolunteerDetailPageState extends State<VolunteerDetailPage> {
     });
 
     if (response.statusCode == 200) {
+      final responseData = jsonDecode(utf8.decode(response.bodyBytes));
       setState(() {
-        _data = jsonDecode(utf8.decode(response.bodyBytes));
+        _data = responseData;
+        _isScrapped = responseData['scrap'] ?? false;
         _isLoading = false;
       });
     } else {
-      // Error handling
       print('Failed to load data');
       setState(() {
         _isLoading = false;
@@ -53,12 +54,15 @@ class _VolunteerDetailPageState extends State<VolunteerDetailPage> {
   Future<void> _toggleScrap() async {
     final serverIp = dotenv.env['SERVER_IP'] ?? 'http://defaultIp';
     final accessToken = await getJwtToken();
-    final url = Uri.parse('$serverIp/scrap/${widget.id}');
-    final response = await http.post(url, headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $accessToken',
-    });
-
+    final url = Uri.parse('$serverIp/api/app/scrap/recruitment/create');
+    final data = jsonEncode({"recruitmentId": widget.id});
+    final response = await http.post(url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: data);
+    print(response.body);
     if (response.statusCode == 200) {
       setState(() {
         _isScrapped = !_isScrapped;
@@ -98,7 +102,7 @@ class _VolunteerDetailPageState extends State<VolunteerDetailPage> {
               children: [
                 Expanded(
                   child: Text(
-                    _data!['name'] ?? 'No Name',
+                    _data!['recruitmentName'] ?? 'No Name',
                     style: const TextStyle(
                         fontSize: 24, fontWeight: FontWeight.bold),
                   ),
