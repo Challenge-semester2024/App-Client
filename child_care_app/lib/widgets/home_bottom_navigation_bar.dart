@@ -1,5 +1,6 @@
 import 'package:child_care_app/screens/favorite_facilities_page.dart';
 import 'package:child_care_app/screens/home_page.dart';
+import 'package:child_care_app/screens/scrap_recruitment_page.dart';
 import 'package:flutter/material.dart';
 
 class HomeBottomNavigationBar extends StatefulWidget {
@@ -14,10 +15,10 @@ class _HomeBottomNavigationBarState extends State<HomeBottomNavigationBar> {
   int _selectedIndex = 0;
 
   static const List<Widget> _widgetOptions = <Widget>[
-    HomePage(), // 홈 페이지 위젯
-    FavoriteFacilitiesPage(), // 관심 기관 페이지 위젯
-    Placeholder(), // 스크랩 공고 페이지를 추가하세요
-    Placeholder(), // 더보기 페이지를 추가하세요
+    HomePage(),
+    FavoriteFacilitiesPage(),
+    ScrapRecruitmentPage(),
+    Placeholder(),
   ];
 
   void _onItemTapped(int index) {
