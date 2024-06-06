@@ -26,12 +26,11 @@ class _ScrapRecruitmentPageState extends State<ScrapRecruitmentPage> {
   Future<void> _fetchScrapRecruitments() async {
     final serverIp = dotenv.env['SERVER_IP'] ?? 'http://defaultIp';
     final accessToken = await getJwtToken();
-    final url = Uri.parse('$serverIp/api/app/scrap/recruitment/search');
+    final url = Uri.parse('$serverIp/api/app/scrap/recruitment/get');
     final response = await http.get(url, headers: {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $accessToken',
     });
-
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
       setState(() {
@@ -102,7 +101,7 @@ class _ScrapRecruitmentPageState extends State<ScrapRecruitmentPage> {
                               );
                             },
                             title: Text(
-                              item['name'],
+                              item['recruitmentName'],
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -110,13 +109,20 @@ class _ScrapRecruitmentPageState extends State<ScrapRecruitmentPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const SizedBox(height: 4.0),
-                                Text(
-                                  '${item['recruitmentStartDate']}',
-                                  style: const TextStyle(color: Colors.grey),
-                                ),
-                                Text(
-                                  '${item['currentApplicants']} / ${item['totalApplicants']}',
-                                  style: const TextStyle(color: Colors.grey),
+                                Row(
+                                  children: [
+                                    Text(
+                                      '${item['recruitmentStartDate']}',
+                                      style:
+                                          const TextStyle(color: Colors.grey),
+                                    ),
+                                    const SizedBox(width: 30.0),
+                                    Text(
+                                      item['childCenterName'],
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
