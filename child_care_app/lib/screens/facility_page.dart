@@ -12,12 +12,14 @@ class FacilityPage extends StatefulWidget {
   final String name;
   final String address;
   final String phone;
+  final bool isLike;
 
   const FacilityPage({
     required this.id,
     required this.name,
     required this.address,
     required this.phone,
+    required this.isLike,
     super.key,
   });
 
@@ -27,11 +29,39 @@ class FacilityPage extends StatefulWidget {
 
 class _FacilityPageState extends State<FacilityPage> {
   String _selectedTab = '시설 소개';
+  late bool _isLike;
+
+  @override
+  void initState() {
+    super.initState();
+    _isLike = widget.isLike;
+  }
 
   void _onTabSelected(String tab) {
     setState(() {
       _selectedTab = tab;
     });
+  }
+
+  Future<void> _toggleFavorite() async {
+    final serverIp = dotenv.env['SERVER_IP'] ?? 'http://defaultIp';
+    final accessToken = await getJwtToken();
+    final url = Uri.parse('$serverIp/api/app/like/center/create');
+    final data = jsonEncode({"childCenterId": widget.id});
+    final response = await http.post(url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: data);
+    if (response.statusCode == 200) {
+      setState(() {
+        _isLike = !_isLike;
+      });
+    } else {
+      // Error handling
+      print('Failed to toggle favorite');
+    }
   }
 
   @override
@@ -102,10 +132,11 @@ class _FacilityPageState extends State<FacilityPage> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.star_border),
-                        onPressed: () {
-                          // 관심기관 추가 로직
-                        },
+                        icon: Icon(
+                          _isLike ? Icons.star : Icons.star_border,
+                          color: _isLike ? Colors.yellow : Colors.grey,
+                        ),
+                        onPressed: _toggleFavorite,
                       ),
                     ],
                   ),
