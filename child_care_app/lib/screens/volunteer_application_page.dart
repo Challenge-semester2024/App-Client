@@ -106,7 +106,7 @@ class _VolunteerApplicationPageState extends State<VolunteerApplicationPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              volunteerData['name'] ?? 'No Name',
+              volunteerData['recruitmentName'] ?? 'No Name',
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
