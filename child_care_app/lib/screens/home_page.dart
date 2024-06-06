@@ -1,9 +1,14 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:child_care_app/screens/find_facility_page.dart';
-import 'package:child_care_app/screens/find_volunteer_page.dart'; // 봉사공고 찾기 페이지 임포트
+import 'package:child_care_app/screens/find_volunteer_page.dart';
+import 'package:child_care_app/screens/volunteer_detail_page.dart';
+import 'package:child_care_app/service/token.dart';
 import 'package:child_care_app/widgets/home_bottom_navigation_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 class HomePage extends StatefulWidget {
@@ -17,11 +22,51 @@ class _HomePageState extends State<HomePage> {
   final ImagePicker _picker = ImagePicker();
   XFile? _image;
 
+  int recruitmentCount = 0;
+  List<Map<String, dynamic>> scrapRecruitments = [];
+  bool _isLoading = true;
+  String volunteerName = '';
+
   Future<void> _pickImage() async {
     final pickedImage = await _picker.pickImage(source: ImageSource.gallery);
     setState(() {
       _image = pickedImage;
     });
+  }
+
+  Future<void> _fetchHomeData() async {
+    final serverIp = dotenv.env['SERVER_IP'] ?? 'http://defaultIp';
+    final accessToken = await getJwtToken();
+    final url = Uri.parse('$serverIp/get/app/home');
+    final response = await http.get(url, headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $accessToken',
+    });
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      print(data);
+      setState(() {
+        volunteerName = data['volunteerName'] ?? '사용자';
+        recruitmentCount = data['recruitmentCountByVolunteer'];
+        scrapRecruitments = List<Map<String, dynamic>>.from(
+          data['scrapRecruitments'].take(2),
+        );
+        _isLoading = false;
+      });
+    } else {
+      // Handle error
+      print('Failed to load home data');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHomeData();
   }
 
   @override
@@ -30,15 +75,15 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         elevation: 4, // 그림자 추가
         backgroundColor: Colors.white,
-        toolbarHeight: 120,
+        toolbarHeight: 110,
         automaticallyImplyLeading: false,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            const Text(
-              '치따르르롱 님,\n안녕하세요.',
-              style: TextStyle(
+            Text(
+              '$volunteerName 님,\n안녕하세요.',
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
@@ -73,170 +118,202 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "나의 봉사",
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
-              ),
-              const SizedBox(
-                height: 10,
-              ),
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                elevation: 5,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.favorite, color: Colors.red, size: 50),
-                          SizedBox(width: 10),
-                          Text(
-                            '10',
-                            style: TextStyle(
-                              fontSize: 40,
-                              color: Colors.red,
-                            ),
-                          ),
-                        ],
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "나의 봉사",
+                      style:
+                          TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        '총 봉사 횟수는 10회 입니다.',
-                        style: TextStyle(fontSize: 18),
-                      ),
-                      const SizedBox(height: 20),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      elevation: 5,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
                           children: [
-                            Icon(Icons.campaign, size: 90),
-                            SizedBox(width: 20),
-                            Expanded(
-                              child: Column(
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.favorite,
+                                      color: Colors.red,
+                                      size: 70,
+                                    ),
+                                    Text(
+                                      '$recruitmentCount',
+                                      style: const TextStyle(
+                                        fontSize: 30,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              '총 봉사 횟수는 $recruitmentCount회 입니다.',
+                              style: const TextStyle(fontSize: 18),
+                            ),
+                            const SizedBox(height: 15),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    '관심 기관 봉사 공고',
-                                    style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold),
+                                  const Icon(Icons.campaign, size: 90),
+                                  const SizedBox(width: 20),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          '관심 봉사 기관 공고',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        ...scrapRecruitments.map((recruitment) {
+                                          return GestureDetector(
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      VolunteerDetailPage(
+                                                    id: recruitment['id'],
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            child: Text(
+                                              '• ${recruitment['childCenterName']} | ${recruitment['recruitmentName']} | ${recruitment['recruitmentStartDate']}',
+                                              style:
+                                                  const TextStyle(fontSize: 16),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ],
+                                    ),
                                   ),
-                                  SizedBox(height: 10),
-                                  Text('• 상록원 | 식판 닦기 | 24.02.04'),
-                                  Text('• 봄의 집 | 놀이 선생님 | 24.02.04'),
-                                  Text('• 상록원 | 식판 닦기 | 24.02.04'),
                                 ],
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      const FindFacilityPage()),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            foregroundColor: Colors.black,
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            elevation: 5,
+                            shadowColor: Colors.grey,
+                            minimumSize: const Size(100, 100),
+                          ),
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.home, size: 40),
+                              SizedBox(height: 5),
+                              Text('기관 찾기', style: TextStyle(fontSize: 16)),
+                            ],
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      const FindVolunteerPage()),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            foregroundColor: Colors.black,
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            elevation: 5,
+                            shadowColor: Colors.grey,
+                            minimumSize: const Size(100, 100),
+                          ),
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.search, size: 40),
+                              SizedBox(height: 5),
+                              Text('봉사공고 찾기', style: TextStyle(fontSize: 16)),
+                            ],
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {},
+                          style: ElevatedButton.styleFrom(
+                            foregroundColor: Colors.black,
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            elevation: 5,
+                            shadowColor: Colors.grey,
+                            minimumSize: const Size(100, 100),
+                          ),
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.history, size: 40),
+                              SizedBox(height: 5),
+                              Text('신청내역', style: TextStyle(fontSize: 16)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const FindFacilityPage()),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.black,
-                      backgroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      elevation: 5, // 그림자 추가
-                      shadowColor: Colors.grey, // 그림자 색상 설정
-                      minimumSize: const Size(100, 100), // 높이 설정
-                    ),
-                    child: const Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.home, size: 40), // 아이콘 크기 조정
-                        SizedBox(height: 5),
-                        Text('기관 찾기', style: TextStyle(fontSize: 16)),
-                      ],
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) =>
-                                const FindVolunteerPage()), // 봉사공고 찾기 페이지로 이동
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.black,
-                      backgroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      elevation: 5, // 그림자 추가
-                      shadowColor: Colors.grey, // 그림자 색상 설정
-                      minimumSize: const Size(100, 100), // 높이 설정
-                    ),
-                    child: const Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.search, size: 40), // 아이콘 크기 조정
-                        SizedBox(height: 5),
-                        Text('봉사공고 찾기', style: TextStyle(fontSize: 16)),
-                      ],
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.black,
-                      backgroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      elevation: 5, // 그림자 추가
-                      shadowColor: Colors.grey, // 그림자 색상 설정
-                      minimumSize: const Size(100, 100), // 높이 설정
-                    ),
-                    child: const Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.history, size: 40), // 아이콘 크기 조정
-                        SizedBox(height: 5),
-                        Text('신청내역', style: TextStyle(fontSize: 16)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+            ),
       bottomNavigationBar: const HomeBottomNavigationBar(),
     );
   }
