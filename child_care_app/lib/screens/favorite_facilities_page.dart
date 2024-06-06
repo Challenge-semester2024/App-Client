@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
+import 'facility_page.dart';
+
 class FavoriteFacilitiesPage extends StatefulWidget {
   const FavoriteFacilitiesPage({super.key});
 
@@ -31,7 +33,6 @@ class _FavoriteFacilitiesPageState extends State<FavoriteFacilitiesPage> {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $accessToken',
     });
-
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
       setState(() {
@@ -44,6 +45,25 @@ class _FavoriteFacilitiesPageState extends State<FavoriteFacilitiesPage> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _toggleFavorite(int facilityId) async {
+    final serverIp = dotenv.env['SERVER_IP'] ?? 'http://defaultIp';
+    final accessToken = await getJwtToken();
+    final url = Uri.parse('$serverIp/api/app/like/center/create');
+    final data = jsonEncode({"childCenterId": facilityId});
+    final response = await http.post(url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: data);
+
+    if (response.statusCode == 200) {
+      await _fetchFavoriteFacilities();
+    } else {
+      print('Failed to toggle favorite');
     }
   }
 
@@ -109,14 +129,24 @@ class _FavoriteFacilitiesPageState extends State<FavoriteFacilitiesPage> {
                             style: const TextStyle(fontSize: 14),
                           ),
                           trailing: IconButton(
-                            icon: const Icon(
-                              Icons.star,
-                              color: Colors.yellow,
-                            ),
-                            onPressed: () {
-                              // 관심기관 해제 로직
-                            },
+                            icon: const Icon(Icons.star, color: Colors.yellow),
+                            onPressed: () => _toggleFavorite(item['id']),
                           ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => FacilityPage(
+                                  id: item['id'],
+                                  name: item['centerName'] ?? 'No Name',
+                                  address:
+                                      '${item['roadAddress']} ${item['detailAddress']}',
+                                  phone: item['centerPhoneNum'],
+                                  isLike: true,
+                                ),
+                              ),
+                            );
+                          },
                         );
                       },
                       separatorBuilder: (context, index) {
