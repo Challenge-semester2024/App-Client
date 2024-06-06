@@ -24,14 +24,13 @@ class _FindFacilityPageState extends State<FindFacilityPage> {
     final query = _searchController.text;
     final serverIp = dotenv.env['SERVER_IP'] ?? 'http://defaultIp';
     final accessToken = await getJwtToken();
-    final url = Uri.parse('$serverIp/api/center/find');
+    final url = Uri.parse('$serverIp/api/center/search/app');
     final body = jsonEncode({'findWord': query});
 
     final response = await http.post(url, body: body, headers: {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $accessToken',
     });
-
     if (response.statusCode == 200) {
       setState(() {
         _facilities = jsonDecode(utf8.decode(response.bodyBytes));
@@ -110,6 +109,7 @@ class _FindFacilityPageState extends State<FindFacilityPage> {
                           name: facility['centerName'],
                           address: facility['roadAddress'],
                           phone: facility['phoneNumber'],
+                          isLike: facility['like'],
                         ),
                       ),
                     );
